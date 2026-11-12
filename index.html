@@ -1,63 +1,328 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>OfficeSync | יצוא נתונים לחשבשבת</title>
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Assistant', sans-serif; }
-        body { background-color: #FFFFFF; color: #000000; padding: 30px; direction: rtl; text-align: right; }
-        
-        .container { max-width: 1200px; margin: 0 auto; }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>מיון תעודות משלוח לפי לקוחות</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=David+Libre:wght@400;500;700&display=swap">
+<style>
+body,button,input,pre{font-family:"David Libre","David",serif}
+:root{--bg:#fff;--ink:#000;--beige:#fcfaf3;--beige2:#efe6cf;--line:#e4d9bb}
+*{box-sizing:border-box;border-radius:0}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"David Libre","David",serif;font-size:18px;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:18px 18px 60px}
+.bsd{text-align:right;font-weight:700;font-size:16px}
+h1{font-size:28px;margin:6px 0 18px}
+h2{font-size:20px;margin:0 0 10px}
+.card{background:var(--beige);border:1px solid var(--line);padding:16px;margin-bottom:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.name{background:#fff;border:1px solid var(--line);padding:6px 10px;flex:1;min-width:200px;min-height:36px}
+button{font:inherit;background:var(--beige2);color:var(--ink);border:1px solid var(--line);padding:8px 18px;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+input[type=text]{font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);padding:7px 10px;width:100%}
+label.f{display:block;font-weight:600;margin:8px 0 4px}
+summary{cursor:pointer;font-weight:600}
+.bar{height:12px;background:#fff;border:1px solid var(--line);margin:10px 0}
+.bar i{display:block;height:100%;width:0;background:var(--ink)}
+.tablewrap{overflow-x:auto;margin-top:10px}
+table{border-collapse:collapse;width:100%;background:#fff}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:right;vertical-align:top}
+th{background:var(--beige2)}
+td input{padding:4px 8px}
+.msg{background:#fff;border:1px solid var(--ink);padding:10px;margin-bottom:16px}
+.hide{display:none}
+pre{white-space:pre-wrap;margin:6px 0 0;font:inherit;font-size:14px;direction:rtl}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="bsd">בס"ד</div>
+<h1>מיון תעודות משלוח לפי לקוחות</h1>
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #000000;
-            padding-bottom: 15px;
-            margin-bottom: 30px;
-        }
+<div id="nosupport" class="msg hide">הדפדפן הזה לא יכול לגשת לתיקיות במחשב. יש לפתוח את הקובץ בדפדפן Chrome או Edge.</div>
 
-        .bsd { font-weight: 700; font-size: 1.1rem; }
-        .header-title { text-align: center; flex: 1; }
-        .header-title h1 { font-size: 1.8rem; font-weight: 700; color: #000000; }
-        .header-title p { font-size: 1rem; color: #333333; margin-top: 5px; }
+<div class="row"><button id="saveAll">שמירה</button><button id="loadAll">טעינה</button><span id="saveMsg"></span><input type="file" id="loadFile" accept=".json" class="hide"></div>
 
-        .card {
-            background-color: #FFFFFF;
-            border: 1px solid #000000;
-            border-radius: 4px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
+<section class="card">
+<h2>תיקיות</h2>
+<label class="f">התיקייה שבה התעודות, מסודרת לפי חודשים</label>
+<div class="row"><button id="pickSrc">בחירת תיקייה</button><div class="name" id="srcName">לא נבחרה תיקייה</div></div>
+<label class="f">התיקייה שבה יישמרו התעודות ממוינות (לא חובה)</label>
+<div class="row"><button class="light" id="pickDst">בחירת תיקייה</button><div class="name" id="dstName">אם לא תיבחר, תיווצר תיקייה בשם "מוין לפי לקוחות" בתוך תיקיית המקור</div></div>
+<div class="row"><label><input type="checkbox" id="move"> להעביר את הקבצים במקום להעתיק</label></div>
+<details>
+<summary>הגדרות זיהוי</summary>
+<div style="margin-top:6px">ההגדרות נשמרות אוטומטית בדפדפן, בלי צורך ללחוץ על שמירה.</div>
+<label class="f">המילים שמופיעות בתעודה לפני מספר החשבון (מופרדות בפסיק)</label>
+<input type="text" id="cfgAcc">
+<label class="f">המילים שמופיעות בתעודה לפני שם הלקוח (מופרדות בפסיק)</label>
+<input type="text" id="cfgName">
+<label class="f">שם העסק שלך, כדי שלא יזוהה בטעות כלקוח</label>
+<input type="text" id="cfgOwn">
+</details>
+</section>
 
-        .card h3 {
-            font-size: 1.2rem;
-            font-weight: 700;
-            border-bottom: 1px solid #000000;
-            padding-bottom: 8px;
-            margin-bottom: 15px;
-            color: #000000;
-        }
+<section class="card">
+<h2>1. זיהוי לקוחות</h2>
+<div class="row"><button id="scan" disabled>סריקה וזיהוי</button><button class="light" id="stop" disabled>עצירה</button></div>
+<div id="status">בחר תיקיית מקור כדי להתחיל.</div>
+<div class="bar"><i id="prog"></i></div>
+<div class="tablewrap hide" id="custWrap">
+<table><thead><tr><th>שם הלקוח (אפשר לתקן)</th><th>מספר חשבון</th><th>מספר תעודות</th></tr></thead><tbody id="custRows"></tbody></table>
+</div>
+<div id="unknownBox" class="hide"></div>
+</section>
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #FFFFFF;
-            margin-top: 15px;
-        }
+<section class="card">
+<h2>2. מיון לתיקיות</h2>
+<div class="row"><button id="sort" disabled>מיון לתיקיות</button></div>
+<div id="sortStatus">אחרי הזיהוי תוכל לבדוק את השמות ואז למיין.</div>
+<div class="bar"><i id="prog2"></i></div>
+</section>
+</div>
 
-        th, td {
-            padding: 10px;
-            text-align: right;
-            border: 1px solid #000000;
-            font-size: 0.95rem;
-        }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const UNKNOWN='לא זוהה',DEFAULT_DST='מוין לפי לקוחות',NOMONTH='ללא חודש';
+let src=null,dst=null,ocr=null,workerReady=null,stopFlag=false,files=[],groups=[],unknown=[];
+let cfg={acc:"מספר חשבון, מס' חשבון, מפתח חשבון, מספר לקוח, מס' לקוח, חשבון",name:"שם הלקוח, שם לקוח, לכבוד, לקוח",own:""};
+try{Object.assign(cfg,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
+[['cfgAcc','acc'],['cfgName','name'],['cfgOwn','own']].forEach(([id,k])=>{
+  $(id).value=cfg[k];
+  $(id).oninput=()=>{cfg[k]=$(id).value;try{localStorage.setItem('cfg',JSON.stringify(cfg))}catch(e){}};
+});
+if(!window.showDirectoryPicker){$('nosupport').classList.remove('hide');$('pickSrc').disabled=true;$('pickDst').disabled=true;}
 
-        th { background-color: #F0F0F0; font-weight: 700; }
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const Q='[׳\'`"״]?';
+const norm=s=>(s||'').replace(/[\s"'״׳`.,\-_()\/\\]/g,'').toLowerCase();
+const clean=s=>s.replace(/[\\\/:*?"<>|]/g,'-').trim()||'-';
+const isPdf=n=>/\.pdf$/i.test(n);
+function labelPat(str){
+  return str.split(',').map(s=>s.trim().replace(/[׳'`"״]/g,'')).filter(Boolean)
+    .sort((a,b)=>b.length-a.length)
+    .map(l=>[...l].map(ch=>ch===' '?'\\s+':reEsc(ch)+Q).join(''));
+}
+const revLine=s=>[...s].reverse().join('').replace(/\d[\d.,\-\/]*/g,m=>[...m].reverse().join(''));
 
-        select, input[type="text"], input[type="date"], input[type="file"] {
-            padding: 8px;
-            border-radius: 4px;
-            border:
+$('pickSrc').onclick=async()=>{try{src=await showDirectoryPicker({mode:'readwrite'});$('srcName').textContent=src.name;$('scan').disabled=false;}catch(e){}};
+$('pickDst').onclick=async()=>{try{dst=await showDirectoryPicker({mode:'readwrite'});$('dstName').textContent=dst.name;}catch(e){}};
+$('stop').onclick=()=>{stopFlag=true};
+
+let known={};
+try{known=JSON.parse(localStorage.getItem('known')||'{}')}catch(e){}
+function persist(){
+  groups.forEach(g=>{if(g.acc&&g.name.trim())known[g.acc]=g.name.trim()});
+  try{localStorage.setItem('cfg',JSON.stringify(cfg));localStorage.setItem('known',JSON.stringify(known))}catch(e){}
+}
+$('saveAll').onclick=async()=>{
+  persist();
+  const blob=new Blob([JSON.stringify({cfg,known},null,1)],{type:'application/json'});
+  const fname='הגדרות-מיון-תעודות.json';
+  try{
+    if(window.showSaveFilePicker){
+      const h=await showSaveFilePicker({suggestedName:fname,types:[{description:'קובץ הגדרות',accept:{'application/json':['.json']}}]});
+      const w=await h.createWritable();await w.write(blob);await w.close();
+    }else{
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;a.click();
+    }
+    $('saveMsg').textContent='ההגדרות ושמות הלקוחות נשמרו.';
+  }catch(e){
+    $('saveMsg').textContent=e.name==='AbortError'?'השמירה לקובץ בוטלה. ההגדרות נשמרו בדפדפן.':'השמירה לקובץ נכשלה. ההגדרות נשמרו בדפדפן.';
+  }
+};
+$('loadAll').onclick=()=>$('loadFile').click();
+$('loadFile').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    const d=JSON.parse(await f.text());
+    if(d.cfg)Object.assign(cfg,d.cfg);
+    if(d.known)known=d.known;
+    $('cfgAcc').value=cfg.acc;$('cfgName').value=cfg.name;$('cfgOwn').value=cfg.own;
+    groups.forEach(g=>{if(g.acc&&known[g.acc])g.name=known[g.acc]});
+    if(groups.length)renderResults();
+    persist();
+    $('saveMsg').textContent='ההגדרות ושמות הלקוחות נטענו.';
+  }catch(err){$('saveMsg').textContent='לא ניתן לקרוא את הקובץ.'}
+  e.target.value='';
+};
+
+function parse(lines){
+  const al=labelPat(cfg.acc),nl=labelPat(cfg.name),all=[...al,...nl];
+  let acc='',name='';
+  if(al.length){
+    const r1=new RegExp('(?:'+al.join('|')+')\\s*[:：\\-–]?\\s*(\\d{3,10})');
+    const r2=new RegExp('(\\d{3,10})\\s*[:：\\-–]?\\s*(?:'+al.join('|')+')');
+    for(const l of lines){const m=l.match(r1);if(m){acc=m[1];break}}
+    if(!acc)for(const l of lines){const m=l.match(r2);if(m){acc=m[1];break}}
+  }
+  if(nl.length){
+    const re=new RegExp('(?:'+nl.join('|')+')\\s*[:：\\-–]?\\s*(.*)$');
+    const cut=new RegExp('(?:'+all.join('|')+')');
+    for(let i=0;i<lines.length&&!name;i++){
+      const m=lines[i].match(re);if(!m)continue;
+      let t=m[1];if(!t.trim()&&lines[i+1])t=lines[i+1];
+      t=t.split(/\s{3,}|\t/)[0].split(cut)[0].replace(/\d{4,}.*$/,'').replace(/[:：,;|\s]+$/,'').trim();
+      if(t.length<2||/^[\d\s\-.\/]+$/.test(t))continue;
+      if(cfg.own.trim()&&norm(t).includes(norm(cfg.own)))continue;
+      name=t.slice(0,60);
+    }
+  }
+  return{acc,name};
+}
+const score=r=>(r.acc?1:0)+(r.name?1:0);
+
+async function pageLines(pg){
+  const tc=await pg.getTextContent();
+  const items=tc.items.filter(i=>i.str.trim()).map(i=>({s:i.str.trim(),x:i.transform[4],y:i.transform[5]}));
+  items.sort((a,b)=>b.y-a.y);
+  const rows=[];
+  for(const it of items){const r=rows.find(r=>Math.abs(r.y-it.y)<4);r?r.a.push(it):rows.push({y:it.y,a:[it]});}
+  const A=[],B=[];
+  for(const r of rows){
+    const asc=r.a.sort((p,q)=>p.x-q.x);
+    A.push([...asc].reverse().map(i=>i.s).join(' '));
+    B.push(revLine(asc.map(i=>i.s).join(' ')));
+  }
+  return{A,B};
+}
+async function initEngines(){
+  if(!workerReady)workerReady=fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js')
+    .then(r=>r.blob()).then(b=>{pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(b)});
+  await workerReady;
+}
+async function identify(file){
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  const pages=Math.min(pdf.numPages,2),A=[],B=[];
+  for(let p=1;p<=pages;p++){const L=await pageLines(await pdf.getPage(p));A.push(...L.A);B.push(...L.B);}
+  const ra=parse(A),rb=parse(B);
+  let r=score(rb)>score(ra)?rb:ra,snippet=A.join(' | ');
+  if(!r.acc&&!r.name){
+    if(!ocr)ocr=await Tesseract.createWorker('heb+eng');
+    let txt='';
+    for(let p=1;p<=pages;p++){
+      const vp=(await pdf.getPage(p)).getViewport({scale:2});
+      const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
+      await (await pdf.getPage(p)).render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+      txt+=(await ocr.recognize(cv)).data.text+'\n';
+    }
+    const lines=txt.split('\n').filter(l=>l.trim());
+    r=parse(lines);snippet=lines.join(' | ');
+  }
+  return{acc:r.acc,cname:r.name,snippet:snippet.slice(0,400)};
+}
+async function collect(){
+  const jobs=[];
+  for await(const [name,h] of src.entries()){
+    if(h.kind==='file'&&isPdf(name))jobs.push({dir:src,fname:name,month:NOMONTH});
+    else if(h.kind==='directory'){
+      if(name===DEFAULT_DST)continue;
+      if(dst&&await h.isSameEntry(dst))continue;
+      for await(const [n2,h2] of h.entries())if(h2.kind==='file'&&isPdf(n2))jobs.push({dir:h,fname:n2,month:name});
+    }
+  }
+  return jobs;
+}
+
+$('scan').onclick=async()=>{
+  stopFlag=false;files=[];groups=[];unknown=[];
+  $('scan').disabled=true;$('stop').disabled=false;$('sort').disabled=true;
+  $('custWrap').classList.add('hide');$('unknownBox').classList.add('hide');$('prog').style.width='0';
+  try{
+    $('status').textContent='טוען את מנוע הקריאה…';await initEngines();
+    $('status').textContent='סורק את התיקייה…';
+    const jobs=await collect();
+    if(!jobs.length){$('status').textContent='לא נמצאו קבצי PDF בתיקייה.';return;}
+    for(let i=0;i<jobs.length;i++){
+      if(stopFlag)break;
+      const j=jobs[i];
+      $('status').textContent=`קורא ${i+1} מתוך ${jobs.length}: ${j.fname}`;
+      try{
+        const f=await (await j.dir.getFileHandle(j.fname)).getFile();
+        files.push({...j,...await identify(f)});
+      }catch(e){files.push({...j,acc:'',cname:'',snippet:'שגיאה בקריאת הקובץ'})}
+      $('prog').style.width=((i+1)/jobs.length*100)+'%';
+    }
+    buildGroups();renderResults();
+    $('status').textContent=(stopFlag?'הסריקה נעצרה. ':'הזיהוי הסתיים. ')+`נמצאו ${groups.length} לקוחות, ${unknown.length} תעודות לא זוהו.`;
+    $('sort').disabled=!files.length;
+  }catch(e){$('status').textContent='אירעה שגיאה: '+(e.message||e)}
+  finally{$('scan').disabled=false;$('stop').disabled=true}
+};
+
+function buildGroups(){
+  const byAcc=new Map(),byName=new Map();
+  groups=[];unknown=[];
+  for(const f of files){
+    if(f.acc){
+      if(!byAcc.has(f.acc)){const g={acc:f.acc,names:[],files:[],name:''};byAcc.set(f.acc,g);groups.push(g);}
+      byAcc.get(f.acc).files.push(f);if(f.cname)byAcc.get(f.acc).names.push(f.cname);
+    }
+  }
+  for(const g of groups){g.name=known[g.acc]||topName(g.names);if(g.name)byName.set(norm(g.name),g);}
+  for(const f of files){
+    if(f.acc)continue;
+    if(f.cname){
+      const k=norm(f.cname);
+      if(!byName.has(k)){const g={acc:'',names:[],files:[],name:f.cname};byName.set(k,g);groups.push(g);}
+      byName.get(k).files.push(f);byName.get(k).names.push(f.cname);
+    }else unknown.push(f);
+  }
+  groups.sort((a,b)=>(a.name||a.acc).localeCompare(b.name||b.acc,'he'));
+}
+function topName(names){
+  const c=new Map();
+  for(const n of names){const k=norm(n);const e=c.get(k)||{n,count:0};e.count++;c.set(k,e);}
+  let best=null;for(const e of c.values())if(!best||e.count>best.count)best=e;
+  return best?best.n:'';
+}
+function renderResults(){
+  $('custWrap').classList.toggle('hide',!groups.length);
+  $('custRows').innerHTML=groups.map((g,i)=>`<tr><td><input type="text" data-i="${i}" value="${esc(g.name)}" aria-label="שם הלקוח"></td><td>${esc(g.acc)}</td><td>${g.files.length}</td></tr>`).join('');
+  $('custRows').querySelectorAll('input').forEach(inp=>inp.oninput=()=>{groups[+inp.dataset.i].name=inp.value});
+  const u=$('unknownBox');
+  u.classList.toggle('hide',!unknown.length);
+  u.innerHTML=unknown.length?`<h2 style="margin-top:14px">תעודות שהלקוח שלהן לא זוהה (${unknown.length})</h2>`+unknown.map(f=>`<details><summary>${esc(f.fname)} (${esc(f.month)})</summary><pre>${esc(f.snippet||'לא נקרא טקסט')}</pre></details>`).join(''):'';
+}
+function folderName(g){return clean(g.name.trim()||('חשבון '+g.acc))}
+
+async function put(root,parts,name,file){
+  let d=root;
+  for(const p of parts)d=await d.getDirectoryHandle(clean(p),{create:true});
+  const w=await (await d.getFileHandle(name,{create:true})).createWritable();await w.write(file);await w.close();
+}
+$('sort').onclick=async()=>{
+  persist();
+  $('sort').disabled=true;$('scan').disabled=true;$('prog2').style.width='0';
+  try{
+    const root=dst||await src.getDirectoryHandle(DEFAULT_DST,{create:true});
+    const used=new Map(),jobs=[];
+    for(const g of groups){
+      let fn=folderName(g);const k=norm(fn);
+      if(used.has(k)&&used.get(k)!==g.acc&&g.acc)fn=clean(fn+' - '+g.acc);
+      used.set(k,g.acc);
+      g.files.forEach(f=>jobs.push({f,folder:fn}));
+    }
+    unknown.forEach(f=>jobs.push({f,folder:UNKNOWN}));
+    const moving=$('move').checked;let done=0,fail=0;
+    for(const {f,folder} of jobs){
+      $('sortStatus').textContent=`ממיין ${done+fail+1} מתוך ${jobs.length}: ${f.fname}`;
+      try{
+        const file=await (await f.dir.getFileHandle(f.fname)).getFile();
+        await put(root,[folder,f.month],f.fname,file);
+        if(moving)await f.dir.removeEntry(f.fname);
+        done++;
+      }catch(e){fail++}
+      $('prog2').style.width=((done+fail)/jobs.length*100)+'%';
+    }
+    $('sortStatus').textContent=`המיון הסתיים. ${moving?'הועברו':'הועתקו'} ${done} קבצים`+(fail?`, ${fail} נכשלו.`:'.');
+  }catch(e){$('sortStatus').textContent='אירעה שגיאה: '+(e.message||e)}
+  finally{$('scan').disabled=false;$('sort').disabled=true}
+};
+</script>
+</body>
+</html>
